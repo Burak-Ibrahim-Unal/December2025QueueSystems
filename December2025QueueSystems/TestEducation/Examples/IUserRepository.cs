@@ -8,6 +8,7 @@ namespace TestEducation.Examples
 {
     public class User
     {
+        public string Email { get; set; }
     }
 
     internal interface IUserRepository
