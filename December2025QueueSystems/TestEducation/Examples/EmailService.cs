@@ -6,11 +6,18 @@ using System.Threading.Tasks;
 
 namespace TestEducation.Examples
 {
-    internal class EmailService(IEmailService emailService)
+    internal class EmailService : IEmailService
     {
-        public void SendEmail(string to, string subject, string body)
+        private readonly IEmailService _emailService;
+
+        public EmailService(IEmailService emailService)
         {
-            emailService.Send(to, subject, body);
+            _emailService = emailService;
+        }
+
+        public void Send(string to, string subject, string body)
+        {
+            _emailService.Send(to, subject, body);
         }
     }
 }

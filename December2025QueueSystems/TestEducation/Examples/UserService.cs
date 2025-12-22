@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TestEducation.Examples
 {
-    internal class UserService(IUserRepository userRepository,IEmailService emailService,ISmsService smsService,IDiscountService discountService)
+    internal class UserService(IUserService userRepository,IEmailService emailService,ISmsService smsService,IDiscountService discountService)
     {
         public void Register(User user)
         {

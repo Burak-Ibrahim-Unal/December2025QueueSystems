@@ -6,11 +6,19 @@ using System.Threading.Tasks;
 
 namespace TestEducation.Examples
 {
-    internal class DiscountService(IDiscountService discountService)
+    internal class DiscountService : IDiscountService
     {
-        public void ApplyDiscount(decimal amount, decimal discountPercentage)
+        private readonly IDiscountService _discountService;
+
+        public DiscountService(IDiscountService discountService)
         {
-            discountService.Apply(1,amount, "Wellcome package discount");
+            _discountService = discountService;
+        }
+
+        public void Apply(int userId, decimal amount, string discountCode)
+        {
+            _discountService.Apply(1, amount, "Wellcome package discount");
+
         }
     }
 }

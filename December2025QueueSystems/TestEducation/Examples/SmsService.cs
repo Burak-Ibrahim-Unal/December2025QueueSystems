@@ -6,11 +6,18 @@ using System.Threading.Tasks;
 
 namespace TestEducation.Examples
 {
-    internal class SmsService(ISmsService smsService)
+    internal class SmsService : ISmsService
     {
-        public void SendSms(string phoneNumber, string message)
+        private readonly ISmsService _smsService;
+
+        public SmsService(ISmsService smsService)
         {
-            smsService.Send(phoneNumber, message);
+            _smsService = smsService;
+        }
+
+        public void Send(string phoneNumber, string message)
+        {
+            _smsService.Send(phoneNumber, message);
         }
     }
 }

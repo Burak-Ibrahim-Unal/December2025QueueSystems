@@ -13,7 +13,7 @@ namespace TestEducation.Examples
         public string Phone { get; set; }
     }
 
-    internal interface IUserRepository
+    internal interface IUserService
     {
         void Create(User user);
     }
