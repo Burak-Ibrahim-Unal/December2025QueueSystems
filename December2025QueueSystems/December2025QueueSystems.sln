@@ -5,6 +5,10 @@ VisualStudioVersion = 17.14.36811.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestEducation", "TestEducation\TestEducation.csproj", "{AFD10864-E57D-4943-A10D-1FD7231EF59C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rabbitmq.Api", "Rabbitmq.Api\Rabbitmq.Api.csproj", "{19606593-E306-43FE-AE5F-F44143812C97}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bus.Shared", "Bus.Shared\Bus.Shared.csproj", "{3CB0F2D5-0DC1-4C9F-9DBE-C8258393B236}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{AFD10864-E57D-4943-A10D-1FD7231EF59C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AFD10864-E57D-4943-A10D-1FD7231EF59C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AFD10864-E57D-4943-A10D-1FD7231EF59C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{19606593-E306-43FE-AE5F-F44143812C97}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19606593-E306-43FE-AE5F-F44143812C97}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19606593-E306-43FE-AE5F-F44143812C97}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19606593-E306-43FE-AE5F-F44143812C97}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3CB0F2D5-0DC1-4C9F-9DBE-C8258393B236}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3CB0F2D5-0DC1-4C9F-9DBE-C8258393B236}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3CB0F2D5-0DC1-4C9F-9DBE-C8258393B236}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3CB0F2D5-0DC1-4C9F-9DBE-C8258393B236}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
