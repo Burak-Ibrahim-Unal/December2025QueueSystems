@@ -11,7 +11,7 @@ namespace TestEducation.Examples
     {
         public async Task CreateUser()
         {
-            await busService.Publish(new Bus.Shared.Events.UserCreatedEvent(
+            await busService.PublishWithNoAck(new Bus.Shared.Events.UserCreatedEvent(
                 UserId: 1,
                 UserName: "BurakTest1",
                 Email: "burak@burak.com",

@@ -28,7 +28,7 @@ namespace Rabbitmq.Api.Services
             await channel.DisposeAsync(); // Kanalı kapatır ve kaynakları serbest bırakır.
         }
 
-        public async Task Publish<T>(T message) where T : BaseEvent // Generic bir olay yayınlama metodu; T, BaseEvent'ten türetilmiş olmalı.
+        public async Task PublishWithNoAck<T>(T message) where T : BaseEvent // Generic bir olay yayınlama metodu; T, BaseEvent'ten türetilmiş olmalı.
         {
             IChannel channel = await _connection!.CreateChannelAsync(); // Mevcut bağlantı üzerinden yeni bir iletişim kanalı (channel) açar.
 
@@ -45,6 +45,36 @@ namespace Rabbitmq.Api.Services
                 exchange: "user.created.event-exchange", // Mesajın gönderileceği exchange adı.
                 routingKey: string.Empty, // Fanout exchange için yönlendirme anahtarı boş bırakılır.
                 mandatory: false, // Mesajın teslim edilememesi durumunda iade edilmesini engeller.
+                properties, // Mesajın özelliklerini belirten nesne.
+                body // Mesajın içeriği (byte dizisi).
+            );
+
+            await channel.DisposeAsync(); // Kanalı kapatır ve kaynakları serbest bırakır.
+        }
+
+        public async Task PublishWithAck<T>(T message) where T : BaseEvent // Generic bir olay yayınlama metodu; T, BaseEvent'ten türetilmiş olmalı.
+        {
+            IChannel channel = await _connection!.CreateChannelAsync(
+                new CreateChannelOptions( // Kanal oluşturma seçeneklerini belirten nesne.
+                    publisherConfirmationsEnabled: true, // Yayıncı onaylarının etkinleştirilmesini sağlar.
+                    publisherConfirmationTrackingEnabled: true // Yayıncı onay takibinin etkinleştirilmesini sağlar.
+                )
+            ); // Mevcut bağlantı üzerinden yeni bir iletişim kanalı (channel) açar.
+
+
+            string eventAsJsonData = JsonSerializer.Serialize(message); // Olay nesnesini JSON formatına serileştirir.
+
+            byte[] body = System.Text.Encoding.UTF8.GetBytes(eventAsJsonData); // JSON verisini UTF-8 byte dizisine dönüştürür.
+
+            var properties = new BasicProperties // Mesajın özelliklerini belirlemek için kullanılan nesne.
+            {
+                Persistent = true // Mesajın kalıcı olarak diskte saklar (sunucu kapansa bile silinmemesini sağlar).
+            };
+
+            await channel.BasicPublishAsync(
+                exchange: "user.created.event-exchange", // Mesajın gönderileceği exchange adı.
+                routingKey: string.Empty, // Fanout exchange için yönlendirme anahtarı boş bırakılır.
+                mandatory: true, // Mesajın teslim edilememesi durumunda iade edilmesini sağlar.
                 properties, // Mesajın özelliklerini belirten nesne.
                 body // Mesajın içeriği (byte dizisi).
             );
