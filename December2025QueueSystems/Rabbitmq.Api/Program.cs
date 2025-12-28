@@ -1,5 +1,6 @@
 using Bus.Shared.Options;
 using Microsoft.Extensions.Options;
+using Rabbitmq.Api.Consumer;
 using Rabbitmq.Api.Services;
 using TestEducation.Examples;
 
@@ -28,6 +29,8 @@ builder.Services.AddSingleton<IBusService, RabbitMqBusService>(sp =>
 
     return rabbitMqBus;
 });
+
+builder.Services.AddHostedService<UserCreatedEventConsumer>();
 
 var app = builder.Build();
 

@@ -51,5 +51,10 @@ namespace Rabbitmq.Api.Services
 
             await channel.DisposeAsync(); // Kanalı kapatır ve kaynakları serbest bırakır.
         }
+
+        public Task<IChannel> CreateChannel()
+        {
+            return _connection.CreateChannelAsync(); // Mevcut bağlantı üzerinden yeni bir iletişim kanalı (channel) açar ve döner.
+        }
     }
 }
