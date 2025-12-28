@@ -31,7 +31,6 @@ builder.Services.AddSingleton<IBusService, RabbitMqBusService>(sp =>
 });
 
 builder.Services.AddHostedService<UserCreatedEventConsumer>();
-builder.Services.AddHostedService<UserCreatedEventConsumer2>();
 
 var app = builder.Build();
 

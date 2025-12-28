@@ -15,6 +15,12 @@ namespace Rabbitmq.Api.Consumer
         {
             _channel = await busService.CreateChannel(); // Yeni bir iletişim kanalı (channel) oluşturur.
 
+            await _channel.BasicQosAsync(
+                prefetchSize: 0, // Önceden alınan mesajların toplam boyutu (byte cinsinden). 0, sınırsız anlamına gelir.
+                prefetchCount: 4, // Aynı anda işlenebilecek maksimum mesaj sayısı. 4 mesaj işleneceği anlamına gelir.Bir mesaj işlendiğinde 4'e tamamlayacak şekilde yeni bir mesaj alınır.
+                global: false // Ayarın tüm kanal için mi yoksa sadece bu tüketici için mi geçerli olduğunu belirtir.
+            );
+
             await _channel!.QueueDeclareAsync(
                 queue: "api-user.created.event-queue", // Kuyruğun adı
                 durable: true, // Kuyruğun kalıcı olup olmadığı
@@ -50,7 +56,7 @@ namespace Rabbitmq.Api.Consumer
 
             await _channel!.BasicConsumeAsync( // Kuyruktan mesaj tüketmeye başlar.
                 queue: "api-user.created.event-queue", // Tüketilecek kuyruğun adı
-                autoAck: true, // Mesajların otomatik olarak onaylanıp onaylanmayacağı
+                autoAck: true, // Mesajların otomatik olarak onaylanıp onaylanmayacağı.True olduğunda mesaj exhange'e iletildikten sonra silinir.
                 consumerTag: "api-user.created.event-queue", // Tüketici etiketi
                 consumer: consumer, // Tüketici nesnesi
                 cancellationToken: stoppingToken // İptal token'ı

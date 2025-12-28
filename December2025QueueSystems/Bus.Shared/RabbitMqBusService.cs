@@ -2,6 +2,7 @@
 using Bus.Shared.Options;
 using RabbitMQ.Client;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Rabbitmq.Api.Services
 {
@@ -35,6 +36,8 @@ namespace Rabbitmq.Api.Services
             //At-Most once
             //fire and forget
             IChannel channel = await _connection!.CreateChannelAsync(); // Mevcut bağlantı üzerinden yeni bir iletişim kanalı (channel) açar.
+
+            string exchangeName = $"{typeof(T).Name.ToLower()}-exchange"; // Olay türüne göre exchange adı oluşturur.
 
             string eventAsJsonData = JsonSerializer.Serialize(message); // Olay nesnesini JSON formatına serileştirir.
 

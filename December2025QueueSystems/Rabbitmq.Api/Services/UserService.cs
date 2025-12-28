@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -11,11 +12,25 @@ namespace TestEducation.Examples
     {
         public async Task CreateUser()
         {
-            await busService.PublishWithNoAck(new Bus.Shared.Events.UserCreatedEvent(
-                UserId: 1,
-                UserName: "BurakTest1",
-                Email: "burak@burak.com",
-                Phone: "5551231212"));
+            User user = new User();
+            
+            for (int i = 0; i <= 100; i++)
+            {
+                user = new User
+                {
+                    Id = i,
+                    Name = $"BurakTest{i}",
+                    Email = $"BurakTest{i}@BurakTest{i}.com",
+                    Phone = $"55512312{i:00}"
+                };
+
+                await busService.PublishWithNoAck(new Bus.Shared.Events.UserCreatedEvent(
+                    UserId: user.Id,
+                    UserName: user.Name,
+                    Email: user.Email,
+                    Phone: user.Phone)
+                );
+            }
         }
     }
 }
