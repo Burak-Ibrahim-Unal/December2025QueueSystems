@@ -1,7 +1,7 @@
 ﻿
+using Bus.Shared;
 using Bus.Shared.Events;
 using Microsoft.Extensions.Logging;
-using Rabbitmq.Api.Services;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text.Json;
@@ -13,11 +13,14 @@ namespace Rabbitmq.Api.Consumer
         private IChannel _channel; // İletişim kanalı (channel) nesnesi.
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
+            var exchangeName = busService.GetExchangeName<UserCreatedEvent>();
+
             _channel = await busService.CreateChannel(); // Yeni bir iletişim kanalı (channel) oluşturur.
+
 
             await _channel.BasicQosAsync(
                 prefetchSize: 0, // Önceden alınan mesajların toplam boyutu (byte cinsinden). 0, sınırsız anlamına gelir.
-                prefetchCount: 4, // Aynı anda işlenebilecek maksimum mesaj sayısı. 4 mesaj işleneceği anlamına gelir.Bir mesaj işlendiğinde 4'e tamamlayacak şekilde yeni bir mesaj alınır.
+                prefetchCount: 500, // Aynı anda işlenebilecek maksimum mesaj sayısı. 500 mesaj işleneceği anlamına gelir.Bir mesaj işlendiğinde 500'e tamamlayacak şekilde yeni bir mesaj alınır.
                 global: false // Ayarın tüm kanal için mi yoksa sadece bu tüketici için mi geçerli olduğunu belirtir.
             );
 
@@ -32,7 +35,7 @@ namespace Rabbitmq.Api.Consumer
 
             await _channel.QueueBindAsync(
                 queue: "api-user.created.event-queue", // Kuyruğun adı
-                exchange: "user.created.event-exchange", // Bağlanacak exchange'in adı
+                exchange: exchangeName, // Bağlanacak exchange'in adı
                 routingKey: string.Empty, // Yönlendirme anahtarı (fanout exchange için boş bırakılır)
                 arguments: null, // Ek argümanlar
                 cancellationToken: cancellationToken // İptal token'ı
@@ -63,12 +66,12 @@ namespace Rabbitmq.Api.Consumer
             );
         }
 
-        private async Task Consumer_ReceivedAsync(object sender, BasicDeliverEventArgs @event) // Mesaj alındığında çağrılan event handler metodu.
+        private async Task Consumer_ReceivedAsync(object sender, BasicDeliverEventArgs args) // Mesaj alındığında çağrılan event handler metodu.
         {
             //sender: Mesajı gönderen nesne.
             //@event: Mesajla ilgili teslimat bilgilerini içeren argümanlar.
 
-            string eventAsJsonString = System.Text.Encoding.UTF8.GetString(bytes: @event.Body.ToArray()); // Mesajın gövdesini UTF-8 string'e dönüştürür.
+            string eventAsJsonString = System.Text.Encoding.UTF8.GetString(bytes: args.Body.ToArray()); // Mesajın gövdesini UTF-8 string'e dönüştürür.
 
             var userCreatedEvent = JsonSerializer.Deserialize<UserCreatedEvent>(eventAsJsonString); // JSON string'ini UserCreatedEvent nesnesine deserialize eder.
 

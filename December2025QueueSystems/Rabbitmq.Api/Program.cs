@@ -1,7 +1,7 @@
+using Bus.Shared;
 using Bus.Shared.Options;
 using Microsoft.Extensions.Options;
 using Rabbitmq.Api.Consumer;
-using Rabbitmq.Api.Services;
 using TestEducation.Examples;
 
 var builder = WebApplication.CreateBuilder(args);

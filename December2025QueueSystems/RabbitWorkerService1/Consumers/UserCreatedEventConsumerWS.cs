@@ -1,7 +1,7 @@
 ﻿
+using Bus.Shared;
 using Bus.Shared.Events;
 using Microsoft.Extensions.Logging;
-using Rabbitmq.Api.Services;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text.Json;
@@ -15,6 +15,14 @@ namespace Rabbitmq.Api.Consumer
         {
             _channel = await busService.CreateChannel(); // Yeni bir iletişim kanalı (channel) oluşturur.
 
+            var exchangeName = busService.GetExchangeName<UserCreatedEvent>();
+
+            await _channel.BasicQosAsync(
+                prefetchSize: 0, // Önceden alınan mesajların toplam boyutu (byte cinsinden). 0, sınırsız anlamına gelir.
+                prefetchCount: 4, // Aynı anda işlenebilecek maksimum mesaj sayısı. 4 mesaj işleneceği anlamına gelir.Bir mesaj işlendiğinde 4'e tamamlayacak şekilde yeni bir mesaj alınır.
+                global: false // Ayarın tüm kanal için mi yoksa sadece bu tüketici için mi geçerli olduğunu belirtir.
+            );
+
             await _channel!.QueueDeclareAsync(
                 queue: "worker-service-1.event-queue", // Kuyruğun adı
                 durable: true, // Kuyruğun kalıcı olup olmadığı
@@ -26,7 +34,7 @@ namespace Rabbitmq.Api.Consumer
 
             await _channel.QueueBindAsync(
                 queue: "worker-service-1.event-queue", // Kuyruğun adı
-                exchange: "user.created.event-exchange", // Bağlanacak exchange'in adı
+                exchange: exchangeName, // Bağlanacak exchange'in adı
                 routingKey: string.Empty, // Yönlendirme anahtarı (fanout exchange için boş bırakılır)
                 arguments: null, // Ek argümanlar
                 cancellationToken: cancellationToken // İptal token'ı
@@ -51,7 +59,7 @@ namespace Rabbitmq.Api.Consumer
             await _channel!.BasicConsumeAsync( // Kuyruktan mesaj tüketmeye başlar.
                 queue: "worker-service-1.event-queue", // Tüketilecek kuyruğun adı
                 autoAck: false,  // Mesajların otomatik olarak onaylanıp onaylanmayacağı.True olduğunda mesaj exhange'e iletildikten sonra silinir.
-                consumerTag: "api-user.created.event-queue", // Tüketici etiketi
+                consumerTag: "worker-service-1.event-queue", // Tüketici etiketi
                 consumer: consumer, // Tüketici nesnesi
                 cancellationToken: stoppingToken // İptal token'ı
             );
@@ -74,14 +82,14 @@ namespace Rabbitmq.Api.Consumer
 
                 await _channel.BasicAckAsync( // Mesajın başarıyla işlendiğini RabbitMQ'ya bildirir.
                     deliveryTag: args.DeliveryTag, // İşlenen mesajın teslimat etiketi.
-                    multiple: false // Sadece bu mesajın onaylanacağını belirtir
+                    multiple: true // Sadece bu mesajın onaylanacağını belirtir. Bellekte kaç tane mesaj varsa hepsini onaylamak için true yapılabilir.
                 );
             }
             catch (Exception e)
             {
                 await _channel!.BasicRejectAsync( // Mesajın işlenemediğini RabbitMQ'ya bildirir.
                     deliveryTag: args.DeliveryTag, // İşlenemeyen mesajın teslimat etiketi.
-                    requeue: true // Mesajın kuyruğa geri konulup konulmayacağını belirtir.True ise mesaj tekrar kuyruğa konulur.
+                    requeue: true // Mesajın kuyruğa geri konulup konulmayacağını belirtir.Bellekte kaç tane mesaj varsa hepsini onaylamak için true yapılabilir.
                 );
             }
         }
