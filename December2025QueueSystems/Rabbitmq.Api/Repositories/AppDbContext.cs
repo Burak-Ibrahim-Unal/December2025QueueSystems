@@ -9,6 +9,7 @@ namespace Rabbitmq.Api.Repositories
         public DbSet<Discount> Discounts { get; set; }
         public DbSet<Inbox> Inboxes { get; set; }
         public DbSet<Idempotency> Idempotencies { get; set; }
+        public DbSet<User> Users { get; set; }
 
         override protected void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -74,6 +75,18 @@ namespace Rabbitmq.Api.Repositories
                       .HasConversion<int>(); // EventType enum'unu integer olarak veritabanında saklar.
                 entity.Property(e => e.Created)
                       .IsRequired(); // Created özelliğini zorunlu yapar.
+            });
+
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.ToTable("User"); // Tablo adını "User" olarak belirler.
+                entity.HasKey(e => e.Id); // Id özelliğini primary key olarak işaretler.
+                entity.Property(e => e.UserName)
+                      .IsRequired()
+                      .HasMaxLength(100); // UserName özelliğini zorunlu yapar ve maksimum uzunluğunu 100 karakter olarak ayarlar.
+                entity.Property(e => e.Email)
+                      .IsRequired()
+                      .HasMaxLength(255); // Email özelliğini zorunlu yapar ve maksimum uzunluğunu 255 karakter olarak ayarlar.
             });
         }
     }

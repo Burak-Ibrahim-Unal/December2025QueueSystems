@@ -9,5 +9,6 @@ namespace Rabbitmq.Api.Repositories
         public EventType EventType { get; set; }
         public string EventData { get; set; } = string.Empty;
         public bool IsSent { get; set; }
+        public Guid IdempotencyKey { get; set; }
     }
 }

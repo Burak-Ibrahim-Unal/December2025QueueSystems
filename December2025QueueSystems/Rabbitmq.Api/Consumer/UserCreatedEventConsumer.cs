@@ -1,15 +1,19 @@
 ﻿
 using Bus.Shared;
 using Bus.Shared.Events;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Rabbitmq.Api.Repositories;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text.Json;
+using static Rabbitmq.Api.Repositories.AppDbContext;
 
 namespace Rabbitmq.Api.Consumer
 {
-    public class UserCreatedEventConsumer(IBusService busService) : BackgroundService
+    public class UserCreatedEventConsumer(IBusService busService, IServiceProvider serviceProvider) : BackgroundService
     {
+        // Inbox Patter kullanılacak.Amaç bir mesajın kabolmamasını sağlamak ve aynı mesajın birden fazla kez işlenmesini önlemektir.
         private IChannel _channel; // İletişim kanalı (channel) nesnesi.
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
@@ -68,26 +72,70 @@ namespace Rabbitmq.Api.Consumer
 
         private async Task Consumer_ReceivedAsync(object sender, BasicDeliverEventArgs args) // Mesaj alındığında çağrılan event handler metodu.
         {
+            using var scope = serviceProvider.CreateScope(); // Yeni bir hizmet kapsamı oluşturur.
+
+            var dbcontext = scope.ServiceProvider.GetRequiredService<AppDbContext>(); // AppDbContext hizmetini alır.
+
             //inbox + idempotency
-
-
-
             //sender: Mesajı gönderen nesne.
             //@args: Mesajla ilgili teslimat bilgilerini içeren argümanlar.
 
-            string eventAsJsonString = System.Text.Encoding.UTF8.GetString(bytes: args.Body.ToArray()); // Mesajın gövdesini UTF-8 string'e dönüştürür.
+            if (!args.BasicProperties.Headers!.TryGetValue("idempotency-key", out object idempotencyKey))
+            {
+                //throw new exception with no idempotency key
+                throw new Exception("Idempotency key is missing in message headers.");
+            }
 
-            var userCreatedEvent = JsonSerializer.Deserialize<UserCreatedEvent>(eventAsJsonString); // JSON string'ini UserCreatedEvent nesnesine deserialize eder.
+            string eventDataAsJsonString = System.Text.Encoding.UTF8.GetString(bytes: args.Body.ToArray()); // Mesajın gövdesini UTF-8 string'e dönüştürür.
 
-            Console.WriteLine(
-                $"User Created Event Consumed in API Service: " +
-                $"{userCreatedEvent?.UserName} - {userCreatedEvent?.Email}"
-            ); // Konsola kullanıcı adı ve email bilgilerini yazdırır.
+            var idempotencyKeyString = Guid.Parse(idempotencyKey.ToString());
+            var hasIdempotencyKey = await dbcontext.Idempotencies.AnyAsync(i => i.Key == idempotencyKeyString && i.EventType == EventType.UserCreated); // Veritabanında aynı idempotency key'in olup olmadığını kontrol eder ve sonucu döner.
+            if (hasIdempotencyKey)
+            {
+                await _channel.BasicNackAsync(
+                    deliveryTag: args.DeliveryTag, // Teslimat etiketi
+                    multiple: true,  // Aynı anda birden fazla mesajın reddedilip reddedilmeyeceği
+                    requeue: false  // Reddedilen mesajın kuyruğa geri konup konmayacağı
+                );
+                return; // Eğer aynı idempotency key varsa, mesajı reddeder ve işlemi sonlandırır.
+            }
+
+            var inbox = new Inbox() // Yeni bir Inbox nesnesi oluşturur.
+            {
+                EventType = EventType.UserCreated,
+                CreatedAt = DateTime.UtcNow,
+                EventData = eventDataAsJsonString,
+                IsProcess = false
+            };
+
+            await dbcontext.Inboxes.AddAsync(inbox); // Inbox tablosuna yeni bir kayıt ekler.
+            await dbcontext.Idempotencies.AddAsync(new Idempotency // Yeni bir Idempotency kaydı ekler.
+            {
+                Key = idempotencyKeyString,
+                EventType = EventType.UserCreated,
+                Created = DateTime.UtcNow
+            });
+            await dbcontext.SaveChangesAsync(); // Değişiklikleri veritabanına kaydeder.
 
             await _channel.BasicAckAsync( // Mesajın başarıyla işlendiğini bildirir.
                 deliveryTag: args.DeliveryTag, // Teslimat etiketi
                 multiple: false // Aynı anda birden fazla mesajın onaylanıp onaylanmayacağı
             );
+
+
+            #region Eski Kod
+            //var userCreatedEvent = JsonSerializer.Deserialize<UserCreatedEvent>(eventDataAsJsonString); // JSON string'ini UserCreatedEvent nesnesine deserialize eder.
+
+            //Console.WriteLine(
+            //    $"User Created Event Consumed in API Service: " +
+            //    $"{userCreatedEvent?.UserName} - {userCreatedEvent?.Email}"
+            //); // Konsola kullanıcı adı ve email bilgilerini yazdırır.
+
+            //await _channel.BasicAckAsync( // Mesajın başarıyla işlendiğini bildirir.
+            //    deliveryTag: args.DeliveryTag, // Teslimat etiketi
+            //    multiple: false // Aynı anda birden fazla mesajın onaylanıp onaylanmayacağı
+            //); 
+            #endregion
         }
     }
 }

@@ -25,6 +25,8 @@ namespace Bus.Shared
                 Uri = new Uri(serviceBusOption.RabbitMqConnectionString) // Bağlantı string'ini (URL) ayarlardan alıp uri formatında atar.
             };
 
+            _connection = await connectionFactory.CreateConnectionAsync(); // Asenkron olarak RabbitMQ sunucusuna bağlanır ve bağlantıyı saklar.
+
             _channelWithAck = await _connection!.CreateChannelAsync(
                 new CreateChannelOptions(
                     publisherConfirmationsEnabled: true, // Yayıncı onaylarının etkinleştirilmesini sağlar.
@@ -40,9 +42,9 @@ namespace Bus.Shared
             //Act No, No Retry
             //At-Most once
             //fire and forget
-            string exchangeName = GetExchangeName<UserCreatedEvent>(); // Olay türüne göre exchange adı oluşturur.
+            string exchangeName = GetExchangeName<T>(); // Olay türüne göre exchange adı oluşturur.
 
-            await _channelWithNoAck.ExchangeDeclareAsync( // Exchange'i declare eder.
+            await _channelWithNoAck!.ExchangeDeclareAsync( // Exchange'i declare eder.
                 exchange: exchangeName, // Exchange'in adını belirler.
                 type: ExchangeType.Fanout, // Exchange tipini fanout (tüm kuyruklaara dağıt) olarak belirler.
                 durable: true, //   Exchange'in kalıcı olmasını (sunucu kapansa bile silinmemesini) sağlar.
@@ -60,7 +62,7 @@ namespace Bus.Shared
             };
 
             await _channelWithNoAck.BasicPublishAsync(
-                exchange: "user.created.event-exchange", // Mesajın gönderileceği exchange adı.
+                exchange: exchangeName, // Mesajın gönderileceği exchange adı (T tipine göre dinamik oluşturulur).
                 routingKey: string.Empty, // Fanout exchange için yönlendirme anahtarı boş bırakılır.
                 mandatory: false, // Mesajın teslim edilememesi durumunda iade edilmesini engeller.
                 properties, // Mesajın özelliklerini belirten nesne.
@@ -68,13 +70,11 @@ namespace Bus.Shared
             );
         }
 
-        public async Task PublishWithAck<T>(T message) where T : BaseEvent // Generic bir olay yayınlama metodu; T, BaseEvent'ten türetilmiş olmalı.
+        public async Task PublishWithAck<T>(T message , Dictionary<string,object>? headers = null) where T : BaseEvent // Generic bir olay yayınlama metodu; T, BaseEvent'ten türetilmiş olmalı.
         {
-            //Act Yes, Yes Retry
-            //At-Least once
-            string exchangeName = GetExchangeName<UserCreatedEvent>(); // Olay türüne göre exchange adı oluşturur.
+            string exchangeName = GetExchangeName<T>(); // Olay türüne göre exchange adı oluşturur.
 
-            await _channelWithAck.ExchangeDeclareAsync( // Exchange'i declare eder.
+            await _channelWithAck!.ExchangeDeclareAsync( // Exchange'i declare eder.
                 exchange: exchangeName, // Exchange'in adını belirler.
                 type: ExchangeType.Fanout, // Exchange tipini fanout (tüm kuyruklaara dağıt) olarak belirler.
                 durable: true, //   Exchange'in kalıcı olmasını (sunucu kapansa bile silinmemesini) sağlar.
@@ -88,13 +88,12 @@ namespace Bus.Shared
             var properties = new BasicProperties // Mesajın özelliklerini belirlemek için kullanılan nesne.
             {
                 Persistent = true, // Mesajın kalıcı olarak diskte saklar (sunucu kapansa bile silinmemesini sağlar).
-                Headers = new Dictionary<string, object> // Mesaj başlıklarını tutan sözlük.
-                {
-                    { "idempotency-key", Guid.NewGuid() }, // Mesaj kimliğini başlıklara ekler.
-                    { "event-type", nameof(EventType.UserCreated) }, // Mesaj kimliğini başlıklara ekler.
-                    { "Created", message.Created.ToString("O") } // Oluşturulma zamanını başlıklara ekler (ISO 8601 formatında).
-                }
             };
+
+            if (headers != null) // Başlıklar sağlanmışsa
+            {
+                properties.Headers = headers; // Eğer başlıklar sağlanmışsa, mesaj özelliklerine ekler.
+            }
 
             const int maxRetries = 3; // Maksimum yeniden deneme sayısı.
             int attempt = 0; // Mevcut deneme sayısı.
@@ -105,8 +104,8 @@ namespace Bus.Shared
                 {
                     attempt++;
 
-                    await _channelWithAck.BasicPublishAsync( // Mesajı exchange'e yayınlar.
-                        exchange: "user.created.event-exchange", // Mesajın gönderileceği exchange adı.
+                    await _channelWithAck!.BasicPublishAsync( // Mesajı exchange'e yayınlar.
+                        exchange: exchangeName, // Mesajın gönderileceği exchange adı (T tipine göre dinamik oluşturulur).
                         routingKey: string.Empty, // Fanout exchange için yönlendirme anahtarı boş bırakılır.
                         mandatory: true, // Mesajın teslim edilememesi durumunda iade edilmesini sağlar.
                         properties, // Mesajın özelliklerini belirten nesne.
