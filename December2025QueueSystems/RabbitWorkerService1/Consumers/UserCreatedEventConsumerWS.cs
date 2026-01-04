@@ -15,7 +15,7 @@ namespace Rabbitmq.Api.Consumer
         {
             _channel = await busService.CreateChannel(); // Yeni bir iletişim kanalı (channel) oluşturur.
 
-            var exchangeName = busService.GetExchangeName<UserCreatedEvent>();
+            var exchangeName = RabbitMqBusService.GetExchangeName<UserCreatedEvent>();
 
             await _channel.BasicQosAsync(
                 prefetchSize: 0, // Önceden alınan mesajların toplam boyutu (byte cinsinden). 0, sınırsız anlamına gelir.

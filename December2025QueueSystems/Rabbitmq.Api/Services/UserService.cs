@@ -1,4 +1,6 @@
 ﻿using Bus.Shared;
+using Bus.Shared.Events;
+using Rabbitmq.Api.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace TestEducation.Examples
 {
-    public class UserService(IBusService busService)
+    public class UserService(IBusService busService,AppDbContext appDbContext)
     {
         public async Task CreateUser()
         {
@@ -19,17 +21,15 @@ namespace TestEducation.Examples
                 user = new User
                 {
                     Id = i,
-                    Name = $"BurakTest{i}",
+                    UserName = $"BurakTest{i}",
                     Email = $"BurakTest{i}@BurakTest{i}.com",
-                    Phone = $"55512312{i:00}"
                 };
 
-                await busService.PublishWithNoAck(new Bus.Shared.Events.UserCreatedEvent(
+                await busService.PublishWithNoAck(new UserCreatedEvent(
                     UserId: user.Id,
-                    UserName: user.Name,
-                    Email: user.Email,
-                    Phone: user.Phone)
-                );
+                    UserName: user.UserName,
+                    Email: user.Email
+                ));
             }
         }
     }

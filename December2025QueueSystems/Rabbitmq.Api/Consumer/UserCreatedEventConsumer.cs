@@ -13,7 +13,7 @@ namespace Rabbitmq.Api.Consumer
         private IChannel _channel; // İletişim kanalı (channel) nesnesi.
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
-            var exchangeName = busService.GetExchangeName<UserCreatedEvent>();
+            var exchangeName = RabbitMqBusService.GetExchangeName<UserCreatedEvent>();
 
             _channel = await busService.CreateChannel(); // Yeni bir iletişim kanalı (channel) oluşturur.
 
@@ -59,7 +59,7 @@ namespace Rabbitmq.Api.Consumer
 
             await _channel!.BasicConsumeAsync( // Kuyruktan mesaj tüketmeye başlar.
                 queue: "api-user.created.event-queue", // Tüketilecek kuyruğun adı
-                autoAck: true, // Mesajların otomatik olarak onaylanıp onaylanmayacağı.True olduğunda mesaj exhange'e iletildikten sonra silinir.
+                autoAck: false, // Mesajların otomatik olarak onaylanıp onaylanmayacağı.True olduğunda mesaj exhange'e iletildikten sonra silinir.
                 consumerTag: "api-user.created.event-queue", // Tüketici etiketi
                 consumer: consumer, // Tüketici nesnesi
                 cancellationToken: stoppingToken // İptal token'ı
@@ -68,8 +68,12 @@ namespace Rabbitmq.Api.Consumer
 
         private async Task Consumer_ReceivedAsync(object sender, BasicDeliverEventArgs args) // Mesaj alındığında çağrılan event handler metodu.
         {
+            //inbox + idempotency
+
+
+
             //sender: Mesajı gönderen nesne.
-            //@event: Mesajla ilgili teslimat bilgilerini içeren argümanlar.
+            //@args: Mesajla ilgili teslimat bilgilerini içeren argümanlar.
 
             string eventAsJsonString = System.Text.Encoding.UTF8.GetString(bytes: args.Body.ToArray()); // Mesajın gövdesini UTF-8 string'e dönüştürür.
 
@@ -80,7 +84,10 @@ namespace Rabbitmq.Api.Consumer
                 $"{userCreatedEvent?.UserName} - {userCreatedEvent?.Email}"
             ); // Konsola kullanıcı adı ve email bilgilerini yazdırır.
 
-            await Task.CompletedTask; // Asenkron metot için tamamlanma bildirimi döner.
+            await _channel.BasicAckAsync( // Mesajın başarıyla işlendiğini bildirir.
+                deliveryTag: args.DeliveryTag, // Teslimat etiketi
+                multiple: false // Aynı anda birden fazla mesajın onaylanıp onaylanmayacağı
+            );
         }
     }
 }

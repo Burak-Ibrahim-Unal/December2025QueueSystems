@@ -8,6 +8,5 @@ namespace Bus.Shared
         Task PublishWithNoAck<T>(T message) where T : BaseEvent;
         Task PublishWithAck<T>(T message) where T : BaseEvent;
         Task<IChannel> CreateChannel();
-        string GetExchangeName<T>();
     }
 }

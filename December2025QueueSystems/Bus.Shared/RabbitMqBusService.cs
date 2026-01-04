@@ -87,7 +87,13 @@ namespace Bus.Shared
 
             var properties = new BasicProperties // Mesajın özelliklerini belirlemek için kullanılan nesne.
             {
-                Persistent = true // Mesajın kalıcı olarak diskte saklar (sunucu kapansa bile silinmemesini sağlar).
+                Persistent = true, // Mesajın kalıcı olarak diskte saklar (sunucu kapansa bile silinmemesini sağlar).
+                Headers = new Dictionary<string, object> // Mesaj başlıklarını tutan sözlük.
+                {
+                    { "idempotency-key", Guid.NewGuid() }, // Mesaj kimliğini başlıklara ekler.
+                    { "event-type", nameof(EventType.UserCreated) }, // Mesaj kimliğini başlıklara ekler.
+                    { "Created", message.Created.ToString("O") } // Oluşturulma zamanını başlıklara ekler (ISO 8601 formatında).
+                }
             };
 
             const int maxRetries = 3; // Maksimum yeniden deneme sayısı.
