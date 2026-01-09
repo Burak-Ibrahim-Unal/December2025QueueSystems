@@ -20,17 +20,21 @@ namespace Rabbitmq.Api.Repositories
         {
             modelBuilder.Entity<OutBox>(entity =>
             {
-                entity.ToTable("OutBox");
-                entity.HasKey(e => e.Id);
+                entity.ToTable("OutBox"); // Tablo adını "OutBox" olarak belirler.
+                entity.HasKey(e => e.Id); // Id özelliğini primary key olarak işaretler.
                 entity.Property(e => e.Created)
-                      .IsRequired();
+                      .IsRequired(); // Created özelliğini zorunlu yapar.
                 entity.Property(e => e.EventType)
-                      .IsRequired();
+                      .IsRequired()
+                      .HasConversion<int>(); // EventType enum'unu integer olarak veritabanında saklar.
                 entity.Property(e => e.EventData)
                       .IsRequired()
-                      .HasMaxLength(2000);
+                      .HasMaxLength(4000); // EventData özelliğini zorunlu yapar ve maksimum uzunluğunu 4000 karakter olarak ayarlar.
                 entity.Property(e => e.IsSent)
-                      .IsRequired();
+                      .IsRequired()
+                      .HasDefaultValue(false); // IsSent özelliğini zorunlu yapar ve varsayılan değerini false olarak ayarlar.
+                entity.Property(e => e.IdempotencyKey)
+                      .IsRequired(); // IdempotencyKey özelliğini zorunlu yapar.
             });
 
             modelBuilder.Entity<Discount>(entity =>
@@ -87,6 +91,9 @@ namespace Rabbitmq.Api.Repositories
                 entity.Property(e => e.Email)
                       .IsRequired()
                       .HasMaxLength(255); // Email özelliğini zorunlu yapar ve maksimum uzunluğunu 255 karakter olarak ayarlar.
+                entity.Property(e => e.Phone)
+                      .IsRequired()
+                      .HasMaxLength(20); // Phone özelliğini zorunlu yapar ve maksimum uzunluğunu 20 karakter olarak ayarlar.
             });
         }
     }
