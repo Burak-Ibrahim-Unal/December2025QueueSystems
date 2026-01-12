@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitWorkerService1", "Rab
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeadLetterExchangeConsoleApp", "DeadLetterExchangeConsoleApp\DeadLetterExchangeConsoleApp.csproj", "{11CF85FC-EAE5-4328-97E1-3ED8155E7FE2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DirectExchangeExample", "DirectExchangeExample\DirectExchangeExample.csproj", "{141EAD7C-43CC-40DC-AD95-B8303B511F15}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{11CF85FC-EAE5-4328-97E1-3ED8155E7FE2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{11CF85FC-EAE5-4328-97E1-3ED8155E7FE2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{11CF85FC-EAE5-4328-97E1-3ED8155E7FE2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{141EAD7C-43CC-40DC-AD95-B8303B511F15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{141EAD7C-43CC-40DC-AD95-B8303B511F15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{141EAD7C-43CC-40DC-AD95-B8303B511F15}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{141EAD7C-43CC-40DC-AD95-B8303B511F15}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
