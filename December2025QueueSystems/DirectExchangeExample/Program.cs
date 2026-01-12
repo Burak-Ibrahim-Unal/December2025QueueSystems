@@ -104,9 +104,19 @@ var consumer = new AsyncEventingBasicConsumer(channel);
 
 consumer.ReceivedAsync += async (sender, eventArgs) =>
 {
-    var message = System.Text.Encoding.UTF8.GetString(eventArgs.Body.ToArray());
-    Console.WriteLine($"Received Message: {message} | RoutingKey: {eventArgs.RoutingKey}");
-    await channel.BasicAckAsync(eventArgs.DeliveryTag, false);
+    try
+    {
+        var message = System.Text.Encoding.UTF8.GetString(eventArgs.Body.ToArray());
+        Console.WriteLine($"Received Message: {message} | RoutingKey: {eventArgs.RoutingKey}");
+        await channel.BasicAckAsync(eventArgs.DeliveryTag, false);
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine(e.Message);
+        await channel.BasicNackAsync(deliveryTag: eventArgs.DeliveryTag, multiple: false, requeue: false);
+    }
+
+
 };
 
 await channel.BasicConsumeAsync(queue: mainQueue, autoAck: false, consumer: consumer);
