@@ -2,7 +2,10 @@
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
-(IConnection connection, IChannel channel) = await DeadLetterScenario1();
+//(IConnection connection, IChannel channel) = await DeadLetterScenario1();
+(IConnection connection2, IChannel channel2) = await DeadLetterScenario2WithRequeue();
+
+Console.ReadLine();
 
 async Task<(IConnection connection, IChannel channel)> DeadLetterScenario1()
 {
@@ -34,11 +37,6 @@ async Task<(IConnection connection, IChannel channel)> DeadLetterScenario1()
     // Dead letter exchange ayarları QueueDeclareAsync'te arguments içinde belirtilmelidir.
     var mainQueueArguments = new Dictionary<string, object>()
     {
-        {"x-queue-type", "quorum"}, // Kuyruk tipleri
-        // "classic" : Eski tip kuyruktur, RAM/disk ağırlıklıdır, çoğu gelişmiş retry/delivery-limit özelliği yoktur.
-        // "quorum"  : Raft tabanlı, veri kaybına dayanıklı, retry & delivery-limit destekleyen, güvenilir kuyruk tipidir.
-        // "stream"  : Çok yüksek throughput ve event streaming için tasarlanmıştır, log gibi çalışır (Kafka benzeri).Mesajlar asla silinmez.
-        {"x-dead-letter-exchange", deadLetterExchange}, // Dead letter exchange adını belirtir.
         {"x-message-ttl", 10000 }, // Mesajların 10 saniye sonra expire olmasını sağlar.
         {"x-delivery-limit",3 } // Bir mesaj en fazla 3 kez yeniden kuyruğa teslim edilmeye çalışılır; 3 denemeden sonra başarısız kabul edilip dead-letter exchange’e yönlendirilir.
     };
@@ -157,10 +155,15 @@ async Task<(IConnection connection, IChannel channel)> DeadLetterScenario2WithRe
 
     // Dead letter exchange ayarları QueueDeclareAsync'te arguments içinde belirtilmelidir.
     var mainQueueArguments = new Dictionary<string, object>()
-{
-    {"x-dead-letter-exchange", deadLetterExchange}, // Dead letter exchange adını belirtir.
-    {"x-message-ttl", 10000 } // Mesajların 10 saniye sonra expire olmasını sağlar.
-};
+    {
+        {"x-queue-type", "quorum"}, // Kuyruk tipleri
+        // "classic" : Eski tip kuyruktur, RAM/disk ağırlıklıdır, çoğu gelişmiş retry/delivery-limit özelliği yoktur.
+        // "quorum"  : Raft tabanlı, veri kaybına dayanıklı, retry & delivery-limit destekleyen, güvenilir kuyruk tipidir.
+        // "stream"  : Çok yüksek throughput ve event streaming için tasarlanmıştır, log gibi çalışır (Kafka benzeri).Mesajlar asla silinmez.
+        {"x-dead-letter-exchange", deadLetterExchange}, // Dead letter exchange adını belirtir.
+        {"x-message-ttl", 10000 }, // Mesajların 10 saniye sonra expire olmasını sağlar.
+        {"x-delivery-limit", 3}, // 3 kere dener
+    };
 
     await channel.QueueDeclareAsync(
         queue: mainQueue,
@@ -186,19 +189,13 @@ async Task<(IConnection connection, IChannel channel)> DeadLetterScenario2WithRe
         arguments: null
     );
 
-    // Dead letter queue için arguments ayarları
-    var deadLetterQueueArguments = new Dictionary<string, object>()
-{
-    {"x-dead-letter-exchange", deadLetterExchange }, // Dead letter queue'daki mesajların 24 saat (86400000 ms) sonra expire olmasını sağlar.
-    {"x-message-ttl", 20000 } // Dead letter queue'da maksimum 10000 mesaj tutulur, sonrasında eski mesajlar silinir.
-};
 
     await channel.QueueDeclareAsync(
         queue: deadLetterQueue,
         durable: true, // Kuyruk kalıcı olacak
         exclusive: false, // Kuyruk sadece mevcut bağlantıya özel değil, bağlantı kapansa bile kalacak
         autoDelete: false, // Kuyruk otomatik silinmeyecek
-        arguments: deadLetterQueueArguments // Dead letter queue arguments ayarları
+        arguments: null // Dead letter queue arguments ayarları
     );
 
     await channel.QueueBindAsync(
@@ -225,25 +222,28 @@ async Task<(IConnection connection, IChannel channel)> DeadLetterScenario2WithRe
         body: body
     );
 
+    Console.WriteLine("message is sent to main exhange.it will die after ttl expires time");
+
     var consumer = new AsyncEventingBasicConsumer(channel);
 
     consumer.ReceivedAsync += async (sender, eventArgs) =>
     {
+        Console.WriteLine($"Message Processing - {eventArgs.DeliveryTag}");
+
         try
         {
             var receivingMessage = System.Text.Encoding.UTF8.GetString(eventArgs.Body.ToArray());
-            Console.WriteLine($"Received message from dead letter queue: {receivingMessage} ");
             await channel.BasicAckAsync(deliveryTag: eventArgs.DeliveryTag, multiple: false);
+            Console.WriteLine($"Message acknowledged - {eventArgs.DeliveryTag}");
         }
         catch (Exception)
         {
             await channel.BasicNackAsync(deliveryTag: eventArgs.DeliveryTag, multiple: false, requeue: false);
-            throw;
         }
 
     };
 
-    await channel.BasicConsumeAsync(queue: deadLetterQueue, autoAck: false, consumer: consumer);
+    await channel.BasicConsumeAsync(queue: mainQueue, autoAck: false, consumer: consumer);
     return (connection, channel);
 }
 
